@@ -67,6 +67,39 @@ def _windows_process(pid: int):
     return 0, (kernel32, handle)
 
 
+def _reap_if_child(pid: int) -> None:
+    if not hasattr(os, "WNOHANG"):
+        return
+    try:
+        os.waitpid(pid, os.WNOHANG)
+    except (ChildProcessError, OSError):
+        return
+
+
+def _unix_alive(pid: int) -> bool:
+    """Живой процесс. Завершённый потомок, которого ещё не забрали, не считается работающим."""
+    proc = Path("/proc")
+    if proc.is_dir():
+        try:
+            raw = (proc / str(pid) / "stat").read_bytes()
+        except OSError:
+            return False
+        marker = raw.rfind(b")")
+        if marker < 0 or marker + 2 >= len(raw):
+            return False
+        if raw[marker + 2:marker + 3] in {b"Z", b"X", b"x"}:
+            _reap_if_child(pid)
+            return False
+        return True
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
 def process_alive(pid: int) -> bool:
     if pid <= 0:
         return False
@@ -77,13 +110,7 @@ def process_alive(pid: int) -> bool:
         kernel32, handle = opened
         kernel32.CloseHandle(handle)
         return True
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    return True
+    return _unix_alive(pid)
 
 
 def _our_process(pid: int) -> bool:
