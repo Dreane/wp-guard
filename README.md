@@ -20,7 +20,27 @@ wp-guard version
 python3 -m pip install --user .
 ```
 
-После такой установки команда `wp-guard` может оказаться в `~/.local/bin`. Если оболочка её не находит, добавьте этот каталог в `PATH`.
+Команда `wp-guard` при этом ставится в `~/.local/bin`. Пока каталог не в `PATH`, её можно вызвать так:
+
+```bash
+~/.local/bin/wp-guard version
+```
+
+Чтобы оболочка находила команду без полного пути, добавьте каталог на текущую сессию:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+wp-guard version
+```
+
+Чтобы это сохранилось после нового входа по SSH, допишите ту же строку в файл настроек оболочки и примените его:
+
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+На macOS с оболочкой zsh файл называется `~/.zshrc`, а команда применения — `source ~/.zshrc`.
 
 ## Проверка сайта
 
